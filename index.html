@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe with History & Timer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 600px;
+            margin: 30px auto;
+        }
+        h1 {
+            color: #333;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            font-size: 36px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f0f0f0;
+            border: 2px solid #ccc;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .cell:hover {
+            background: #ddd;
+        }
+        .winner {
+            color: #4CAF50;
+            font-size: 20px;
+        }
+        .timer {
+            font-size: 18px;
+            color: #ff9800;
+            margin-bottom: 15px;
+        }
+        .points {
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+        .history {
+            text-align: left;
+            margin-top: 20px;
+        }
+        .history h2 {
+            font-size: 18px;
+        }
+        .history ul {
+            list-style: none;
+            padding: 0;
+        }
+        .history li {
+            background: #f5f5f5;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .play-again {
+            background: #6200ea;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.3s;
+            margin-top: 20px;
+        }
+        .play-again:hover {
+            background: #3700b3;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Tic-Tac-Toe 🎯</h1>
+    
+    <div class="points">
+        X Points: <span id="x-points">100</span> | O Points: <span id="o-points">100</span>
+    </div>
+
+    <div class="timer" id="timer">Time Left: 10s</div>
+
+    <div class="board" id="board"></div>
+
+    <div class="winner" id="winner"></div>
+
+    <button class="play-again" onclick="restartGame()">Play Again</button>
+
+    <div class="history">
+        <h2>Win/Loss History (Last 5 Rounds):</h2>
+        <ul id="history-list"></ul>
+    </div>
+</div>
+
+<script>
+    const board = document.getElementById("board");
+    const timerDisplay = document.getElementById("timer");
+    const winnerDisplay = document.getElementById("winner");
+    const xPointsDisplay = document.getElementById("x-points");
+    const oPointsDisplay = document.getElementById("o-points");
+    const historyList = document.getElementById("history-list");
+
+    let boardState;
+    let currentPlayer;
+    let xPoints = 100;
+    let oPoints = 100;
+    let timer;
+    let timeLeft;
+    let history = [];
+
+    function initGame() {
+        boardState = Array(9).fill("");
+        currentPlayer = "X";
+        winnerDisplay.textContent = "";
+        timeLeft = 10;
+        
+        board.innerHTML = "";
+        for (let i = 0; i < 9; i++) {
+            const cell = document.createElement("div");
+            cell.classList.add("cell");
+            cell.dataset.index = i;
+            cell.onclick = handleCellClick;
+            board.appendChild(cell);
+        }
+        startTimer();
+    }
+
+    function startTimer() {
+        clearInterval(timer);
+        timer = setInterval(() => {
+            timeLeft--;
+            timerDisplay.textContent = `Time Left: ${timeLeft}s`;
+
+            if (timeLeft <= 0) {
+                switchPlayer();
+            }
+        }, 1000);
+    }
+
+    function handleCellClick(e) {
+        const index = e.target.dataset.index;
+
+        if (!boardState[index] && !winnerDisplay.textContent) {
+            boardState[index] = currentPlayer;
+            e.target.textContent = currentPlayer;
+
+            if (checkWinner()) {
+                clearInterval(timer);
+                updatePoints(currentPlayer);
+                displayWinner(currentPlayer);
+                updateHistory(currentPlayer);
+            } else if (boardState.every(cell => cell)) {
+                clearInterval(timer);
+                xPoints += 5;
+                oPoints += 5;
+                updatePoints();
+                winnerDisplay.textContent = "It's a Draw!";
+                updateHistory("Draw");
+            } else {
+                switchPlayer();
+            }
+        }
+    }
+
+    function switchPlayer() {
+        currentPlayer = currentPlayer === "X" ? "O" : "X";
+        timeLeft = 10;
+        timerDisplay.textContent = `Time Left: ${timeLeft}s`;
+    }
+
+    function checkWinner() {
+        const winningCombinations = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], 
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], 
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        return winningCombinations.some(combo => {
+            const [a, b, c] = combo;
+            return boardState[a] && boardState[a] === boardState[b] && boardState[a] === boardState[c];
+        });
+    }
+
+    function updatePoints(winner) {
+        if (winner === "X") {
+            xPoints += 10;
+            oPoints -= 10;
+        } else {
+            xPoints -= 10;
+            oPoints += 10;
+        }
+        xPointsDisplay.textContent = xPoints;
+        oPointsDisplay.textContent = oPoints;
+    }
+
+    function displayWinner(winner) {
+        winnerDisplay.textContent = `${winner} Wins! 🎉`;
+    }
+
+    function updateHistory(winner) {
+        history.unshift(`Winner: ${winner} → X: ${xPoints} pts | O: ${oPoints} pts`);
+        if (history.length > 5) history.pop();
+        historyList.innerHTML = history.map(item => `<li>${item}</li>`).join("");
+    }
+
+    function restartGame() {
+        clearInterval(timer);
+        initGame();
+    }
+
+    window.onload = initGame;
+</script>
+
+</body>
+</html>
